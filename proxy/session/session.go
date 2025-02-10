@@ -75,7 +75,7 @@ func (s *Session) Run(isServer bool) {
 	settings := util.StringMap{
 		"v":           "1",
 		"client":      "anytls/0.0.1",
-		"padding-md5": padding.PaddingMd5.Load(),
+		"padding-md5": padding.DefaultPaddingFactory.Load().Md5,
 	}
 	f := newFrame(cmdSettings, 0)
 	f.data = settings.ToBytes()
@@ -221,10 +221,11 @@ func (s *Session) recvLoop() error {
 					if !s.isClient {
 						receivedSettingsFromClient = true
 						m := util.StringMapFromBytes(buffer)
-						if m["padding-md5"] != padding.PaddingMd5.Load() {
+						paddingF := padding.DefaultPaddingFactory.Load()
+						if m["padding-md5"] != paddingF.Md5 {
 							// logrus.Debugln("remote md5 is", m["padding-md5"])
 							f := newFrame(cmdUpdatePaddingScheme, 0)
-							f.data = padding.PaddingSchemeRaw.Load()
+							f.data = paddingF.RawScheme
 							_, err = s.writeFrame(f)
 							if err != nil {
 								buf.Put(buffer)
@@ -313,8 +314,9 @@ func (s *Session) writeConn(b []byte) (n int, err error) {
 	// calulate & send padding
 	if s.isClient {
 		pkt := s.pktCounter.Add(1)
-		if pkt < padding.PaddingStop.Load() {
-			pktSizes := padding.GenerateRecordPayloadSizes(pkt)
+		paddingF := padding.DefaultPaddingFactory.Load()
+		if pkt < paddingF.Stop {
+			pktSizes := paddingF.GenerateRecordPayloadSizes(pkt)
 			for _, l := range pktSizes {
 				remainPayloadLen := len(b)
 				if l == padding.CheckMark {

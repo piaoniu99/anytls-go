@@ -12,6 +12,8 @@ import (
 	"github.com/sagernet/sing/common/atomic"
 )
 
+const CheckMark = -1
+
 var defaultPaddingScheme = []byte(`stop=8
 0=34-120
 1=100-400
@@ -22,36 +24,47 @@ var defaultPaddingScheme = []byte(`stop=8
 6=500-1000
 7=500-1000`)
 
-var paddingScheme atomic.TypedValue[util.StringMap]
-var PaddingSchemeRaw atomic.TypedValue[[]byte]
-var PaddingStop atomic.Uint32
-var PaddingMd5 atomic.TypedValue[string]
+type PaddingFactory struct {
+	scheme    util.StringMap
+	RawScheme []byte
+	Stop      uint32
+	Md5       string
+}
 
-const CheckMark = -1
+var DefaultPaddingFactory atomic.TypedValue[*PaddingFactory]
 
 func init() {
 	UpdatePaddingScheme(defaultPaddingScheme)
 }
 
-func UpdatePaddingScheme(b []byte) bool {
-	scheme := util.StringMapFromBytes(b)
-	if len(scheme) == 0 {
-		return false
+func UpdatePaddingScheme(rawScheme []byte) bool {
+	if p := NewPaddingFactory(rawScheme); p != nil {
+		DefaultPaddingFactory.Store(p)
+		return true
 	}
-	if stop, err := strconv.Atoi(scheme["stop"]); err == nil {
-		PaddingStop.Store(uint32(stop))
-	} else {
-		return false
-	}
-	PaddingSchemeRaw.Store(b)
-	paddingScheme.Store(scheme)
-	PaddingMd5.Store(fmt.Sprintf("%x", md5.Sum(b)))
-	return true
+	return false
 }
 
-func GenerateRecordPayloadSizes(pkt uint32) (pktSizes []int) {
-	scheme := paddingScheme.Load()
-	if s, ok := scheme[strconv.Itoa(int(pkt))]; ok {
+func NewPaddingFactory(rawScheme []byte) *PaddingFactory {
+	p := &PaddingFactory{
+		RawScheme: rawScheme,
+		Md5:       fmt.Sprintf("%x", md5.Sum(rawScheme)),
+	}
+	scheme := util.StringMapFromBytes(rawScheme)
+	if len(scheme) == 0 {
+		return nil
+	}
+	if stop, err := strconv.Atoi(scheme["stop"]); err == nil {
+		p.Stop = uint32(stop)
+	} else {
+		return nil
+	}
+	p.scheme = scheme
+	return p
+}
+
+func (p *PaddingFactory) GenerateRecordPayloadSizes(pkt uint32) (pktSizes []int) {
+	if s, ok := p.scheme[strconv.Itoa(int(pkt))]; ok {
 		sRanges := strings.Split(s, ",")
 		for _, sRange := range sRanges {
 			sRangeMinMax := strings.Split(sRange, "-")
