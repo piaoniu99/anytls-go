@@ -1,0 +1,74 @@
+package main
+
+import (
+	"anytls/proxy/session"
+	"bytes"
+	"context"
+	"crypto/tls"
+	"encoding/binary"
+	"net"
+	"strings"
+
+	"github.com/sagernet/sing/common/buf"
+	"github.com/sagernet/sing/common/bufio"
+	M "github.com/sagernet/sing/common/metadata"
+	"github.com/sirupsen/logrus"
+)
+
+func handleTcpConnection(ctx context.Context, c net.Conn, s *myServer) {
+	c = tls.Server(c, s.tlsConfig)
+	defer c.Close()
+
+	b := buf.NewPacket()
+	_, err := b.ReadOnceFrom(c)
+	if err != nil {
+		logrus.Debugln("ReadOnceFrom:", err)
+		return
+	}
+	c = bufio.NewCachedConn(c, b)
+
+	by, err := b.ReadBytes(32)
+	if err != nil || !bytes.Equal(by, passwordSha256) {
+		b.Reset()
+		fallback(ctx, c)
+		return
+	}
+	by, err = b.ReadBytes(2)
+	if err != nil {
+		b.Reset()
+		fallback(ctx, c)
+		return
+	}
+	paddingLen := binary.BigEndian.Uint16(by)
+	if paddingLen > 0 {
+		_, err = b.ReadBytes(int(paddingLen))
+		if err != nil {
+			b.Reset()
+			fallback(ctx, c)
+			return
+		}
+	}
+
+	session := session.NewServerSession(c, func(stream *session.Stream) {
+		defer stream.Close()
+
+		destination, err := M.SocksaddrSerializer.ReadAddrPort(stream)
+		if err != nil {
+			logrus.Debugln("ReadAddrPort:", err)
+			return
+		}
+
+		if strings.Contains(destination.String(), "udp-over-tcp.arpa") {
+			proxyOutboundUoT(ctx, stream, destination)
+		} else {
+			proxyOutboundTCP(ctx, stream, destination)
+		}
+	})
+	session.Run(true)
+	session.Close()
+}
+
+func fallback(ctx context.Context, c net.Conn) {
+	// 暂未实现
+	logrus.Debugln("fallback:", c.RemoteAddr())
+}
