@@ -75,7 +75,7 @@ func (s *Session) Run(isServer bool) {
 
 	settings := util.StringMap{
 		"v":           "1",
-		"client":      "anytls/0.0.1",
+		"client":      util.ProgramVersionName,
 		"padding-md5": padding.DefaultPaddingFactory.Load().Md5,
 	}
 	f := newFrame(cmdSettings, 0)

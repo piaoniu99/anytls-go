@@ -1,6 +1,7 @@
 package main
 
 import (
+	"anytls/util"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
@@ -34,6 +35,7 @@ func main() {
 	var sum = sha256.Sum256([]byte(*password))
 	passwordSha256 = sum[:]
 
+	logrus.Infoln("[Client]", util.ProgramVersionName)
 	logrus.Infoln("[Client] socks5", *listen, "=>", *serverAddr)
 
 	listener, err := net.Listen("tcp", *listen)

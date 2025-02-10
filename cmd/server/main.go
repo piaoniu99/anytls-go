@@ -52,6 +52,7 @@ func main() {
 	var sum = sha256.Sum256([]byte(*password))
 	passwordSha256 = sum[:]
 
+	logrus.Infoln("[Server]", util.ProgramVersionName)
 	logrus.Infoln("[Server] Listening TCP", *listen)
 
 	listener, err := net.Listen("tcp", *listen)
