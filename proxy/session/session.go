@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"runtime/debug"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -147,6 +148,11 @@ func (s *Session) OpenStream() (*Stream, error) {
 }
 
 func (s *Session) recvLoop() error {
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Errorln("[BUG]", r, string(debug.Stack()))
+		}
+	}()
 	defer s.Close()
 
 	var receivedSettingsFromClient bool

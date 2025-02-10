@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net"
+	"runtime/debug"
 
 	"github.com/sagernet/sing/common/bufio"
 	M "github.com/sagernet/sing/common/metadata"
@@ -13,6 +14,11 @@ import (
 )
 
 func handleTcpConnection(ctx context.Context, c net.Conn, s *myClient) {
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Errorln("[BUG]", r, string(debug.Stack()))
+		}
+	}()
 	defer c.Close()
 
 	socks.HandleConnection(ctx, c, nil, s, M.Metadata{

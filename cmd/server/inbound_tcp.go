@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"net"
+	"runtime/debug"
 	"strings"
 
 	"github.com/sagernet/sing/common/buf"
@@ -16,6 +17,12 @@ import (
 )
 
 func handleTcpConnection(ctx context.Context, c net.Conn, s *myServer) {
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Errorln("[BUG]", r, string(debug.Stack()))
+		}
+	}()
+
 	c = tls.Server(c, s.tlsConfig)
 	defer c.Close()
 
@@ -50,6 +57,11 @@ func handleTcpConnection(ctx context.Context, c net.Conn, s *myServer) {
 	}
 
 	session := session.NewServerSession(c, func(stream *session.Stream) {
+		defer func() {
+			if r := recover(); r != nil {
+				logrus.Errorln("[BUG]", r, string(debug.Stack()))
+			}
+		}()
 		defer stream.Close()
 
 		destination, err := M.SocksaddrSerializer.ReadAddrPort(stream)
