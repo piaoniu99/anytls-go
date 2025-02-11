@@ -93,9 +93,9 @@ stop=8
 
 - padding1 开始处于会话部分，采用 padding 策略分包和/或填充：如果分包发送完之后，用户数据仍然有剩余，则直接发送剩余数据。如果分包发送完之前，用户数据已发送完毕，则发送 `cmdWaste frame` 垃圾数据做填充。
 - 分包策略，比如：上述 paddingScheme 将包 `2` 将分成 5 个尺寸在 400-500 的小包发送（这里的尺寸指 TLS PlainText 的尺寸，不计算 TLS 加密等开销）。
-- 中间的 `c` 是检查符号，含义：如果上一个分包发送完毕后，用户数据已无剩余，则直接跳过剩余的 padding 处理。
-- 目前包计数器以 Session 写到 TLS 时为准，包 `1` 应该包括：`cmdSettings` 和首个 Stream 的 `cmdSYN + cmdPSH(代理目标地址数据)`
-- 包 `2` 应该是来自代理用户的第一个包，可能是 TLS ClientHello。
+- 中间的 `c` 是检查符号，含义：若上一个分包发送完毕后，用户数据已无剩余，则直接对本次写入返回，不再发送后续的填充包。
+- 包计数器以写到 TLS 的次数为准，包 `1` 应该包括：`cmdSettings` 和首个 Stream 的 `cmdSYN + cmdPSH(代理目标地址数据)`
+- 包 `2` 应该是代理自用户的第一个数据包，比如 TLS ClientHello。
 - 假如在 stop 之前的某个包的发送策略没有被 PaddingScheme 定义，那么直接发送该包。
 
 参考处理逻辑在 `func (s *Session) writeConn()`
