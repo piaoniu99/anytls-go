@@ -38,6 +38,18 @@
 
 任意一方收到 cmdWaste frame 后都应将其 data 完整读出并无声丢弃。
 
+#### cmdSYN
+
+客户端通知服务器打开一条新的 Stream。客户端应为每个 Stream 生成在 Session 内单调递增的 streamId。
+
+#### cmdPSH
+
+承载 Stream 的传输数据。
+
+#### cmdFIN
+
+通知对方关闭对应 streamId 的 Stream。
+
 #### cmdSettings
 
 其 data 目前为：
@@ -108,7 +120,9 @@ stop=8
 
 复用的具体逻辑：
 
-创建新的会话层之前必须检查是否有“空闲”的会话，如果有则取下层 TLS 连接建立时间最新的 Session，在该 Session 上开启 Stream 承载用户代理请求。
+创建新的会话层之前必须检查是否有“空闲”的会话，如果有则取 `Seq` 最大的会话，在该 Session 上开启 Stream 承载用户代理请求。
+
+如果没有空闲的会话，则创建新的会话，Session 的序号 `Seq` 在一个 Client 内应单调递增。
 
 Stream 在代理中继完毕被关闭时，如果对应 Session 的事件循环未遇到错误，则将 Session 放入“空闲”连接池，并且设置 Session 的空闲起始时间为 now。
 
@@ -141,3 +155,17 @@ Stream 在代理中继完毕被关闭时，如果对应 Session 的事件循环�
 服务器可以定期清理长期无上下行的 Session。
 
 对于目标地址为 `sp.v2.udp-over-tcp.arpa` 的请求，则应该使用 sing-box udp-over-tcp 协议处理。
+
+## 协议参数
+
+anytls 协议参数不包括 TLS 的参数。应该在另外的配置分区中指定 TLS 参数。
+
+### 客户端
+
+- `password` 必选，string 类型，协议认证的密码。
+- `idleSessionCheckInterval` 可选，time.Duration 类型，检查空闲会话的间隔时间。
+- `idleSessionTimeout` 可选，time.Duration 类型，关闭空闲时间超过此时长的会话。
+
+### 服务器
+
+- `paddingScheme` 可选，string 类型，填充方案。
