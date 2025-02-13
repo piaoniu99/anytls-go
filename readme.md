@@ -27,3 +27,15 @@
 ```
 
 `127.0.0.1:1080` 为本机 Socks5 代理监听地址，理论上支持 TCP 和 UDP(通过 udp over tcp 传输)。
+
+### sing-box
+
+如果你喜欢使用 sing-box，可以尝试这个 fork。它包含了 anytls 协议的服务器和客户端。
+
+https://github.com/anytls/sing-box
+
+### mihomo
+
+如果你喜欢使用 mihomo，可以尝试这个 fork。它包含了 anytls 协议的客户端。
+
+https://github.com/anytls/mihomo
