@@ -36,6 +36,6 @@ https://github.com/anytls/sing-box
 
 ### mihomo
 
-如果你喜欢使用 mihomo，可以尝试这个 fork。它包含了 anytls 协议的客户端。
+https://github.com/MetaCubeX/mihomo
 
-https://github.com/anytls/mihomo
+已合并至 Alpha 分支。它包含了 anytls 协议的服务器和客户端。
