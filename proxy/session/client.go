@@ -2,7 +2,6 @@ package session
 
 import (
 	"anytls/proxy"
-	"anytls/proxy/extend"
 	"anytls/util"
 	"context"
 	"fmt"
@@ -65,22 +64,20 @@ func (c *Client) CreateStream(ctx context.Context) (net.Conn, error) {
 		return nil, fmt.Errorf("too many closed session: %w", err)
 	}
 
-	streamC := extend.NewCloseHookConn(stream, func() {
+	stream.dieHook = func() {
 		if session.IsClosed() {
-			// 再运行一次确保清除
 			if session.dieHook != nil {
 				session.dieHook()
 			}
 		} else {
-			// 降序插入，后插的先取出
 			c.idleSessionLock.Lock()
 			session.idleSince = time.Now()
 			c.idleSession.Insert(math.MaxUint64-session.seq, session)
 			c.idleSessionLock.Unlock()
 		}
-	})
+	}
 
-	return streamC, nil
+	return stream, nil
 }
 
 func (c *Client) findSession(ctx context.Context) (*Session, error) {
