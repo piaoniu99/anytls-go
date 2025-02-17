@@ -21,20 +21,24 @@ type Client struct {
 	die       context.Context
 	dieCancel context.CancelFunc
 
+	dialOut proxy.DialOutFunc
+
 	sessionCounter  atomic.Uint64
 	idleSession     *stl4go.SkipList[uint64, *Session]
 	idleSessionLock sync.Mutex
 }
 
-func NewClient(ctx context.Context) *Client {
-	c := &Client{}
+func NewClient(ctx context.Context, dialOut proxy.DialOutFunc) *Client {
+	c := &Client{
+		dialOut: dialOut,
+	}
 	c.die, c.dieCancel = context.WithCancel(ctx)
 	c.idleSession = stl4go.NewSkipList[uint64, *Session]()
 	util.StartRoutine(c.die, time.Second*30, c.idleCleanup)
 	return c
 }
 
-func (c *Client) CreateStream(ctx context.Context, dialOut proxy.DialOutFunc) (net.Conn, error) {
+func (c *Client) CreateStream(ctx context.Context) (net.Conn, error) {
 	select {
 	case <-c.die.Done():
 		return nil, io.ErrClosedPipe
@@ -46,7 +50,7 @@ func (c *Client) CreateStream(ctx context.Context, dialOut proxy.DialOutFunc) (n
 	var err error
 
 	for i := 0; i < 3; i++ {
-		session, err = c.findSession(ctx, dialOut)
+		session, err = c.findSession(ctx)
 		if session == nil {
 			return nil, fmt.Errorf("failed to create session: %w", err)
 		}
@@ -79,7 +83,7 @@ func (c *Client) CreateStream(ctx context.Context, dialOut proxy.DialOutFunc) (n
 	return streamC, nil
 }
 
-func (c *Client) findSession(ctx context.Context, dialOut proxy.DialOutFunc) (*Session, error) {
+func (c *Client) findSession(ctx context.Context) (*Session, error) {
 	var idle *Session
 
 	c.idleSessionLock.Lock()
@@ -91,14 +95,14 @@ func (c *Client) findSession(ctx context.Context, dialOut proxy.DialOutFunc) (*S
 	c.idleSessionLock.Unlock()
 
 	if idle == nil {
-		s, err := c.createSession(ctx, dialOut)
+		s, err := c.createSession(ctx)
 		return s, err
 	}
 	return idle, nil
 }
 
-func (c *Client) createSession(ctx context.Context, dialOut proxy.DialOutFunc) (*Session, error) {
-	underlying, err := dialOut(ctx)
+func (c *Client) createSession(ctx context.Context) (*Session, error) {
+	underlying, err := c.dialOut(ctx)
 	if err != nil {
 		return nil, err
 	}

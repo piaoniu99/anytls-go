@@ -24,12 +24,12 @@ func NewMyClient(ctx context.Context, serverAddr string, tlsConfig *tls.Config) 
 		serverAddr: serverAddr,
 		tlsConfig:  tlsConfig,
 	}
-	s.sessionClient = session.NewClient(ctx)
+	s.sessionClient = session.NewClient(ctx, s.CreateOutboundTLSConnection)
 	return s
 }
 
 func (c *myClient) CreateProxy(ctx context.Context, destination M.Socksaddr) (net.Conn, error) {
-	conn, err := c.sessionClient.CreateStream(ctx, c.CreateOutboundTLSConnection)
+	conn, err := c.sessionClient.CreateStream(ctx)
 	if err != nil {
 		return nil, err
 	}
