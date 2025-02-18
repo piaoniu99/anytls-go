@@ -76,7 +76,7 @@ func handleTcpConnection(ctx context.Context, c net.Conn, s *myServer) {
 			proxyOutboundTCP(ctx, stream, destination)
 		}
 	})
-	session.Run(true)
+	session.Run()
 	session.Close()
 }
 

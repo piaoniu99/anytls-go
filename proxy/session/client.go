@@ -112,7 +112,7 @@ func (c *Client) createSession(ctx context.Context) (*Session, error) {
 		c.idleSession.Remove(math.MaxUint64 - session.seq)
 		c.idleSessionLock.Unlock()
 	}
-	session.Run(false)
+	session.Run()
 	return session, nil
 }
 
