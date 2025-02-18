@@ -128,6 +128,8 @@ Stream 在代理中继完毕被关闭时，如果对应 Session 的事件循环�
 
 定期（如 30s）检查连接池中的空闲会话，关闭并删除持续空闲超过一定时间（如 60s）的会话。
 
+> 以上连接策略高度概括：优先复用最新的连接，优先清理最老的连接。
+
 ### 代理
 
 对于 TCP，每个 Stream 打开后，客户端向服务器发送 [SocksAddr](https://tools.ietf.org/html/rfc1928#section-5) 格式表示代理请求的目标地址，然后开始双向代理中继。
@@ -140,13 +142,17 @@ Stream 在代理中继完毕被关闭时，如果对应 Session 的事件循环�
 
 服务器基于 TLS Server 运行，对于每个 Accpted TLS Connection 认证的方式为：
 
-读出第一个数据包，校验认证请求（包括 padding0），如果不符合，则关闭连接或进行 fallback 到 http 服务器。如果符合，则开始会话循环。
+读出第一个数据包，校验认证请求（包括完整读出 padding0），如果符合，则开始会话循环。如果不符合，则直接关闭连接或 "[fallback](https://trojan-gfw.github.io/trojan/protocol.html#:~:text=Anti%2Ddetection-,Active%20Detection,-All%20connection%20without)" 到任意 "合法" L7 应用。
 
 ### 会话
 
 会话层格式和命令见客户端。
 
-对于一个新 Session，如果服务器在收到客户端的 `cmdSettings frame` 之前收到其他 frame，必须发送 `cmdALert` 并关闭 Session。
+对于一个新 Session，如果服务器在收到客户端的 `cmdSettings frame` 之前收到 `cmdSYN frame`，必须拒绝此次会话。
+
+服务器有权拒绝未正确实现本协议（包括但不限于 `cmdUpdatePaddingScheme` 和连接复用）、版本过旧（有已知问题）的客户端连接。
+
+当服务器拒绝这类客户端时，必须发送 `cmdAlert` 说明原因，然后关闭 Session。
 
 ### 代理
 
