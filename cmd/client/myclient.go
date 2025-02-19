@@ -48,6 +48,8 @@ func (c *myClient) CreateOutboundTLSConnection(ctx context.Context) (net.Conn, e
 	}
 
 	b := buf.NewPacket()
+	defer b.Release()
+
 	b.Write(passwordSha256)
 	var paddingLen int
 	if pad := padding.DefaultPaddingFactory.Load().GenerateRecordPayloadSizes(0); len(pad) > 0 {

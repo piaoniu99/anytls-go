@@ -27,6 +27,8 @@ func handleTcpConnection(ctx context.Context, c net.Conn, s *myServer) {
 	defer c.Close()
 
 	b := buf.NewPacket()
+	defer b.Release()
+
 	_, err := b.ReadOnceFrom(c)
 	if err != nil {
 		logrus.Debugln("ReadOnceFrom:", err)
