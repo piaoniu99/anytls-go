@@ -257,19 +257,18 @@ func (s *Session) recvLoop() error {
 				}
 			case cmdUpdatePaddingScheme:
 				if hdr.Length() > 0 {
-					buffer := buf.Get(int(hdr.Length()))
-					if _, err := io.ReadFull(s.conn, buffer); err != nil {
-						buf.Put(buffer)
+					// `rawScheme` Do not use buffer to prevent subsequent misuse
+					rawScheme := make([]byte, int(hdr.Length()))
+					if _, err := io.ReadFull(s.conn, rawScheme); err != nil {
 						return err
 					}
 					if s.isClient && !clientDebugPaddingScheme {
-						if padding.UpdatePaddingScheme(buffer) {
-							logrus.Infof("[Update padding succeed] %x\n", md5.Sum(buffer))
+						if padding.UpdatePaddingScheme(rawScheme) {
+							logrus.Infof("[Update padding succeed] %x\n", md5.Sum(rawScheme))
 						} else {
-							logrus.Warnf("[Update padding failed] %x\n", md5.Sum(buffer))
+							logrus.Warnf("[Update padding failed] %x\n", md5.Sum(rawScheme))
 						}
 					}
-					buf.Put(buffer)
 				}
 			default:
 				// I don't know what command it is (can't have data)
