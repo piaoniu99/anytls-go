@@ -1,7 +1,6 @@
 package session
 
 import (
-	"anytls/proxy"
 	"anytls/util"
 	"context"
 	"fmt"
@@ -20,14 +19,14 @@ type Client struct {
 	die       context.Context
 	dieCancel context.CancelFunc
 
-	dialOut proxy.DialOutFunc
+	dialOut util.DialOutFunc
 
 	sessionCounter  atomic.Uint64
 	idleSession     *stl4go.SkipList[uint64, *Session]
 	idleSessionLock sync.Mutex
 }
 
-func NewClient(ctx context.Context, dialOut proxy.DialOutFunc) *Client {
+func NewClient(ctx context.Context, dialOut util.DialOutFunc) *Client {
 	c := &Client{
 		dialOut: dialOut,
 	}
@@ -127,21 +126,21 @@ func (c *Client) idleCleanup() {
 }
 
 func (c *Client) idleCleanupExpTime(expTime time.Time) {
-	var sessionToRemove = make([]*Session, 0)
+	var sessionToClose []*Session
 
 	c.idleSessionLock.Lock()
 	it := c.idleSession.Iterate()
 	for it.IsNotEnd() {
 		session := it.Value()
 		if session.idleSince.Before(expTime) {
-			sessionToRemove = append(sessionToRemove, session)
+			sessionToClose = append(sessionToClose, session)
 			c.idleSession.Remove(it.Key())
 		}
 		it.MoveToNext()
 	}
 	c.idleSessionLock.Unlock()
 
-	for _, session := range sessionToRemove {
+	for _, session := range sessionToClose {
 		session.Close()
 	}
 }

@@ -1,11 +1,10 @@
 package main
 
 import (
-	"anytls/proxy"
 	"anytls/proxy/padding"
 	"anytls/proxy/session"
+	"anytls/util"
 	"context"
-	"crypto/tls"
 	"encoding/binary"
 	"net"
 
@@ -14,17 +13,15 @@ import (
 )
 
 type myClient struct {
-	serverAddr    string
-	tlsConfig     *tls.Config
+	dialOut       util.DialOutFunc
 	sessionClient *session.Client
 }
 
-func NewMyClient(ctx context.Context, serverAddr string, tlsConfig *tls.Config) *myClient {
+func NewMyClient(ctx context.Context, dialOut util.DialOutFunc) *myClient {
 	s := &myClient{
-		serverAddr: serverAddr,
-		tlsConfig:  tlsConfig,
+		dialOut: dialOut,
 	}
-	s.sessionClient = session.NewClient(ctx, s.CreateOutboundTLSConnection)
+	s.sessionClient = session.NewClient(ctx, s.createOutboundConnection)
 	return s
 }
 
@@ -41,8 +38,8 @@ func (c *myClient) CreateProxy(ctx context.Context, destination M.Socksaddr) (ne
 	return conn, nil
 }
 
-func (c *myClient) CreateOutboundTLSConnection(ctx context.Context) (net.Conn, error) {
-	conn, err := proxy.SystemDialer.DialContext(ctx, "tcp", c.serverAddr)
+func (c *myClient) createOutboundConnection(ctx context.Context) (net.Conn, error) {
+	conn, err := c.dialOut(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +56,6 @@ func (c *myClient) CreateOutboundTLSConnection(ctx context.Context) (net.Conn, e
 	if paddingLen > 0 {
 		b.WriteZeroN(paddingLen)
 	}
-
-	conn = tls.Client(conn, c.tlsConfig)
 
 	_, err = b.WriteTo(conn)
 	if err != nil {

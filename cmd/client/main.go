@@ -1,6 +1,7 @@
 package main
 
 import (
+	"anytls/proxy"
 	"anytls/util"
 	"context"
 	"crypto/sha256"
@@ -60,7 +61,14 @@ func main() {
 	}
 
 	ctx := context.Background()
-	client := NewMyClient(ctx, *serverAddr, tlsConfig)
+	client := NewMyClient(ctx, func(ctx context.Context) (net.Conn, error) {
+		conn, err := proxy.SystemDialer.DialContext(ctx, "tcp", *serverAddr)
+		if err != nil {
+			return nil, err
+		}
+		conn = tls.Client(conn, tlsConfig)
+		return conn, nil
+	})
 
 	for {
 		c, err := listener.Accept()
