@@ -30,9 +30,9 @@
 
 ### sing-box
 
-如果你喜欢使用 sing-box，可以尝试这个 fork。它包含了 anytls 协议的服务器和客户端。
+https://github.com/SagerNet/sing-box
 
-https://github.com/anytls/sing-box
+已合并至 dev-next 分支。它包含了 anytls 协议的服务器和客户端。
 
 ### mihomo
 

@@ -91,6 +91,8 @@ stop=8
 - 客户端应在 Client 对象存储 `paddingScheme`，即服务器下发的 `paddingScheme` 只作用于连接到该服务器的 Client
 - 客户端第一次会话连接使用默认的 `paddingScheme`，如果收到 `cmdUpdatePaddingScheme` 后续新建会话则必须使用服务器下发的 `paddingScheme`
 
+> 有了这个设计，当默认 paddingScheme 产生的流量特征被 GFW 列入黑名单时，理论上每个客户端启动时只需要发送少量数据（理想情况下只有第一个连接的 pkt 0~2），在收到服务器的首个 `cmdUpdatePaddingScheme` 后就能更新为服务器指定的特征。因此，理论上可以被 GFW 捕获的已知特征的连接的比例将非常低。
+
 #### paddingScheme 具体含义与实现
 
 > padding0
