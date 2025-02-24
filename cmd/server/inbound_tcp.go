@@ -1,6 +1,7 @@
 package main
 
 import (
+	"anytls/proxy/padding"
 	"anytls/proxy/session"
 	"bytes"
 	"context"
@@ -77,7 +78,7 @@ func handleTcpConnection(ctx context.Context, c net.Conn, s *myServer) {
 		} else {
 			proxyOutboundTCP(ctx, stream, destination)
 		}
-	})
+	}, &padding.DefaultPaddingFactory)
 	session.Run()
 	session.Close()
 }

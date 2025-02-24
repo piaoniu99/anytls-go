@@ -11,9 +11,9 @@ import (
 	"runtime/debug"
 	"slices"
 	"sync"
-	"sync/atomic"
 	"time"
 
+	"github.com/sagernet/sing/common/atomic"
 	"github.com/sagernet/sing/common/buf"
 	"github.com/sirupsen/logrus"
 )
@@ -35,6 +35,7 @@ type Session struct {
 	// pool
 	seq       uint64
 	idleSince time.Time
+	padding   *atomic.TypedValue[*padding.PaddingFactory]
 
 	// client
 	isClient    bool
@@ -47,21 +48,23 @@ type Session struct {
 	onNewStream func(stream *Stream)
 }
 
-func NewClientSession(conn net.Conn) *Session {
+func NewClientSession(conn net.Conn, _padding *atomic.TypedValue[*padding.PaddingFactory]) *Session {
 	s := &Session{
 		conn:        conn,
 		isClient:    true,
 		sendPadding: true,
+		padding:     _padding,
 	}
 	s.die = make(chan struct{})
 	s.streams = make(map[uint32]*Stream)
 	return s
 }
 
-func NewServerSession(conn net.Conn, onNewStream func(stream *Stream)) *Session {
+func NewServerSession(conn net.Conn, onNewStream func(stream *Stream), _padding *atomic.TypedValue[*padding.PaddingFactory]) *Session {
 	s := &Session{
 		conn:        conn,
 		onNewStream: onNewStream,
+		padding:     _padding,
 	}
 	s.die = make(chan struct{})
 	s.streams = make(map[uint32]*Stream)
@@ -77,7 +80,7 @@ func (s *Session) Run() {
 	settings := util.StringMap{
 		"v":           "1",
 		"client":      util.ProgramVersionName,
-		"padding-md5": padding.DefaultPaddingFactory.Load().Md5,
+		"padding-md5": s.padding.Load().Md5,
 	}
 	f := newFrame(cmdSettings, 0)
 	f.data = settings.ToBytes()
@@ -228,7 +231,7 @@ func (s *Session) recvLoop() error {
 					if !s.isClient {
 						receivedSettingsFromClient = true
 						m := util.StringMapFromBytes(buffer)
-						paddingF := padding.DefaultPaddingFactory.Load()
+						paddingF := s.padding.Load()
 						if m["padding-md5"] != paddingF.Md5 {
 							// logrus.Debugln("remote md5 is", m["padding-md5"])
 							f := newFrame(cmdUpdatePaddingScheme, 0)
@@ -320,7 +323,7 @@ func (s *Session) writeConn(b []byte) (n int, err error) {
 	// calulate & send padding
 	if s.sendPadding {
 		pkt := s.pktCounter.Add(1)
-		paddingF := padding.DefaultPaddingFactory.Load()
+		paddingF := s.padding.Load()
 		if pkt < paddingF.Stop {
 			pktSizes := paddingF.GenerateRecordPayloadSizes(pkt)
 			for _, l := range pktSizes {

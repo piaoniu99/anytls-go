@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/binary"
 	"net"
+	"time"
 
 	"github.com/sagernet/sing/common/buf"
 	M "github.com/sagernet/sing/common/metadata"
@@ -21,7 +22,7 @@ func NewMyClient(ctx context.Context, dialOut util.DialOutFunc) *myClient {
 	s := &myClient{
 		dialOut: dialOut,
 	}
-	s.sessionClient = session.NewClient(ctx, s.createOutboundConnection)
+	s.sessionClient = session.NewClient(ctx, s.createOutboundConnection, &padding.DefaultPaddingFactory, time.Second*30, time.Second*30, 5)
 	return s
 }
 
