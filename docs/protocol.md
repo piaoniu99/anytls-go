@@ -172,7 +172,8 @@ anytls 协议参数不包括 TLS 的参数。应该在另外的配置分区中�
 
 - `password` 必选，string 类型，协议认证的密码。
 - `idleSessionCheckInterval` 可选，time.Duration 类型，检查空闲会话的间隔时间。
-- `idleSessionTimeout` 可选，time.Duration 类型，关闭空闲时间超过此时长的会话。
+- `idleSessionTimeout` 可选，time.Duration 类型，在检查中，关闭空闲时间超过此时长的会话。
+- `minIdleSession` 可选，int 类型，在检查中，至少保留前 n 个空闲会话不关闭，即为后续代理连接保留一定数量的“预备会话”。
 
 ### 服务器
 
