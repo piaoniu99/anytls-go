@@ -66,6 +66,8 @@ https://github.com/3andne/restls
 
 https://github.com/SagerNet/sing-box
 
+https://github.com/klzgrad/naiveproxy
+
 ## 已知弱点
 
 以下弱点目前可能不会轻易引发“被墙”（甚至可能在大规模 DPI 下很难被利用），且修复可能引发协议不兼容，因此 anytls v1 没有对这些弱点进行处理。
@@ -78,6 +80,7 @@ https://github.com/SagerNet/sing-box
 - 目前不知道如何令人信服地检测和恢复卡住的隧道连接，是否应该加入“心跳检测”？
 - 目前不清楚 alpn 与 gfw 规则之间的关系，例如在 h2 alpn 下运载 http/1.1 数据是否会引发问题？
 - 目前不清楚客户端初始化时使用默认 PaddingScheme 发起的少量连接，以及某些机械性的测试连接是否会对整体统计造成影响？
+- 目前不清楚 GFW 对 TLS 连接会持续跟踪多久，也就是 `stop` 的值是否需要增大？
 - TLS over TLS 开销导致可见的数据包长度增大和小数据包的缺失。消除这种开销还需要 MITM 代理。
 - TLS over TLS 开销还会导致数据包持续超过 MTU 限制，这对于原始用户代理来说不应该发生。
 - 由于这不是 HTTP 服务器，仍然可能存在主动探测问题，即使 gfw 对翻墙协议的主动探测似乎已不常见。
