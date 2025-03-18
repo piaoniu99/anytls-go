@@ -74,7 +74,7 @@ padding-md5=(md5)
 
 当服务器收到客户端的 `padding-md5` 不同于服务器时，会向客户端发送更新  `paddingScheme` 的 frame，其 data 目前格式如下：
 
-> Default Padding Schme v1
+> Default Padding Schme
 
 ```
 stop=8
