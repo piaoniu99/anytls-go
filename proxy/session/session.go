@@ -107,15 +107,15 @@ func (s *Session) Close() error {
 		close(s.die)
 		once = true
 	})
-
 	if once {
 		if s.dieHook != nil {
 			s.dieHook()
 		}
 		s.streamLock.Lock()
 		for k := range s.streams {
-			s.streams[k].sessionClose()
+			s.streams[k].Close()
 		}
+		s.streams = make(map[uint32]*Stream)
 		s.streamLock.Unlock()
 		return s.conn.Close()
 	} else {
@@ -282,8 +282,10 @@ func (s *Session) recvLoop() error {
 	}
 }
 
-// notify the session that a stream has closed
 func (s *Session) streamClosed(sid uint32) error {
+	if s.IsClosed() {
+		return io.ErrClosedPipe
+	}
 	_, err := s.writeFrame(newFrame(cmdFIN, sid))
 	s.streamLock.Lock()
 	delete(s.streams, sid)
