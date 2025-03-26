@@ -32,15 +32,30 @@
 	cmdSettings            = 4 // Settings（客户端向服务器发送）
 	cmdAlert               = 5 // Alert（服务器向客户端发送）
 	cmdUpdatePaddingScheme = 6 // update padding scheme（服务器向客户端发送）
+
+	// Since version 2
+
+	cmdSYNACK         = 7  // Server reports to the client that the stream has been opened
+	cmdHeartRequest   = 8  // Keep alive command
+	cmdHeartResponse  = 9  // Keep alive command
+	cmdServerSettings = 10 // Settings (Server send to client)
 ```
+
+对于不同类型的 command，除非下方说明有提到，否则该类型 command 不应也不能携带 data。
 
 #### cmdWaste
 
 任意一方收到 cmdWaste frame 后都应将其 data 完整读出并无声丢弃。
 
+#### cmdHeartRequest
+
+任意一方收到 cmdHeartRequest 后，应向对方发送 cmdHeartResponse
+
 #### cmdSYN
 
 客户端通知服务器打开一条新的 Stream。客户端应为每个 Stream 生成在 Session 内单调递增的 streamId。
+
+若客户端上报的版本 `v` >= 2，服务器收到 cmdSYN 后应立即发送带有对应 streamId 的 cmdSYNACK 回包通知客户端 stream 打开成功。
 
 #### cmdPSH
 
@@ -55,16 +70,26 @@
 其 data 目前为：
 
 ```
-v=1
+v=2
 client=anytls/0.0.1
 padding-md5=(md5)
 ```
 
 > 采用 UTF-8 编码，key 与 value 之间用 `=` 连接，两者均为 string 类型。不同项目之间用 `\n` 分割。
 
-- `v` 是客户端实现的协议版本号 （目前为 `1`）
+- `v` 是客户端实现的协议版本号 （目前为 `2`）
 - `client` 是客户端软件名称与版本号
 - `padding-md5` 是客户端当前 `paddingScheme` 的 md5 （小写 hex 编码）
+
+#### cmdServerSettings
+
+其 data 目前为：
+
+```
+v=2
+```
+
+- `v` 是服务器实现的协议版本号 （目前为 `2`）
 
 #### cmdAlert
 
@@ -158,6 +183,8 @@ Stream 在代理中继完毕被关闭时，如果对应 Session 的事件循环�
 
 当服务器拒绝这类客户端时，必须发送 `cmdAlert` 说明原因，然后关闭 Session。
 
+当客户端上报的版本 `v` >= 2，服务器收到 cmdSettings 后应立即发送 cmdServerSettings frame。
+
 ### 代理
 
 代理中继完毕后，服务器关闭 Stream 但不要关闭 Session。
@@ -180,3 +207,19 @@ anytls 协议参数不包括 TLS 的参数。应该在另外的配置分区中�
 ### 服务器
 
 - `paddingScheme` 可选，string 类型，填充方案。
+
+## 更新记录
+
+### 协议版本 2
+
+仅当您的服务器和客户端都支持版本 2 时，才应该启用以下特性。否则，两端都将按照版本 1 运行。
+
+- 可以使用 cmdSYNACK 检测并恢复卡住的隧道连接
+- 可以使用主动心跳包 (cmdHeartRequest cmdHeartResponse) 检测并恢复卡住的隧道连接
+- 服务器可以向客户端发送协商信息 (cmdServerSettings)
+
+#### cmdSYNACK
+
+当复用连接意外断开且未收到 RST 时，如果客户端再次打开新连接，协议版本 1 的行为在极端情况下可能会导致无限的超时。
+
+由于在版本 2 中服务器使用 cmdSYNACK 响应 cmdSYN 请求，因此客户端现在可以期待来自服务器的回复，并且如果超时后未收到回复，则可以关闭卡住的连接。
