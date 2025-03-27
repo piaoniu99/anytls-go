@@ -57,7 +57,13 @@
 
 客户端通知服务器打开一条新的 Stream。客户端应为每个 Stream 生成在 Session 内单调递增的 streamId。
 
-若客户端上报的版本 `v` >= 2，服务器收到 cmdSYN 后应立即发送带有对应 streamId 的 cmdSYNACK 回包通知客户端 stream 打开成功。
+### cmdSYNACK
+
+若客户端上报的版本 `v` >= 2，服务器收到 cmdSYN 后应在代理出站连接 TCP 握手完成后，发送带有对应 streamId 的 cmdSYNACK 回包。
+
+如果您的服务器软件架构不支持回报出站连接状态，也可以在收到 cmdSYN 后直接发送 cmdSYNACK。
+
+cmdSYNACK 若不带有 data，则表示代理出站连接 TCP 握手成功。若带有 data，则 data 代表错误信息。客户端收到错误信息后必须关闭对应 stream。
 
 #### cmdPSH
 
@@ -214,11 +220,18 @@ anytls 协议参数不包括 TLS 的参数。应该在另外的配置分区中�
 
 ### 协议版本 2
 
+本次协议更新主要是为了应对隧道连接卡住的问题。
+
 仅当您的服务器和客户端都支持版本 2 时，才应该启用以下特性。否则，两端都将按照版本 1 运行。
 
 - 可以使用 cmdSYNACK 检测并恢复卡住的隧道连接
 - 可以使用主动心跳包 (cmdHeartRequest cmdHeartResponse) 检测并恢复卡住的隧道连接
 - 服务器可以向客户端发送协商信息 (cmdServerSettings)
+
+版本协商原理：
+
+- v2 服务器 + v1 客户端：由于客户端发送的版本为 1，服务器直接禁用版本 2 特性。
+- v1 服务器 + v2 客户端：由于客户端发送的版本为 2，服务器不认识，也不会向客户端发送 cmdServerSettings。客户端没有收到 cmdServerSettings 提示的版本，默认版本为 1，则不启用版本 2 特性。
 
 #### cmdSYNACK
 
