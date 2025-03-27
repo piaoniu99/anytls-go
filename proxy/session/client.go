@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/chen3feng/stl4go"
-	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/atomic"
 )
 
@@ -76,7 +75,7 @@ func (c *Client) CreateStream(ctx context.Context) (net.Conn, error) {
 		}
 		stream, err = session.OpenStream()
 		if err != nil {
-			common.Close(session, stream)
+			session.Close()
 			continue
 		}
 		break
