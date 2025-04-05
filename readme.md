@@ -41,3 +41,7 @@ https://github.com/SagerNet/sing-box
 https://github.com/MetaCubeX/mihomo
 
 已合并至 Alpha 分支。它包含了 anytls 协议的服务器和客户端。
+
+### Shadowrocket
+
+Shadowrocket 实现了 anytls 协议的客户端。但截至 2.2.64 版本未正确实现，行为独特，请等待该软件后续修复。
