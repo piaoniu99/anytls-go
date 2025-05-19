@@ -1,5 +1,5 @@
 # AnyTLS
-
+https://youtu.be/yUJ--0eUs_o
 一个试图缓解 嵌套的TLS握手指纹(TLS in TLS) 问题的代理协议。`anytls-go` 是该协议的参考实现。
 
 - 灵活的分包和填充策略
