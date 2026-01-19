@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"net"
+	"net/url"
 	"os"
 	"strings"
 
@@ -18,13 +19,33 @@ var passwordSha256 []byte
 
 func main() {
 	listen := flag.String("l", "127.0.0.1:1080", "socks5 listen port")
-	serverAddr := flag.String("s", "127.0.0.1:8443", "server address")
-	sni := flag.String("sni", "", "SNI")
-	password := flag.String("p", "", "password")
+	serverAddr := flag.String("s", "", "Server address or anytls:// link")
+	sni := flag.String("sni", "", "Server Name Indication")
+	password := flag.String("p", "", "Password")
+	minIdleSession := flag.Int("m", 5, "Reserved min idle session")
 	flag.Parse()
 
+	if serverURL, err := url.Parse(*serverAddr); err == nil {
+		if serverURL.Scheme == "anytls" {
+			*serverAddr = serverURL.Host
+			if serverURL.User != nil {
+				*password = serverURL.User.String()
+			}
+			query := serverURL.Query()
+			*sni = query.Get("sni")
+		}
+	}
+
+	if *serverAddr == "" {
+		logrus.Fatalln("please set -s server adreess")
+	}
+
 	if *password == "" {
-		logrus.Fatalln("please set password")
+		logrus.Fatalln("please set -p password")
+	}
+
+	if _, _, err := net.SplitHostPort(*serverAddr); err != nil {
+		logrus.Fatalln("error server address:", *serverAddr, err)
 	}
 
 	logLevel, err := logrus.ParseLevel(os.Getenv("LOG_LEVEL"))
@@ -44,6 +65,7 @@ func main() {
 		logrus.Fatalln("listen socks5 tcp:", err)
 	}
 
+	// You can only use `InsecureSkipVerify` by default in the sample client; it is not recommended for use in production code.
 	tlsConfig := &tls.Config{
 		ServerName:         *sni,
 		InsecureSkipVerify: true,
@@ -52,6 +74,7 @@ func main() {
 		// disable the SNI
 		tlsConfig.ServerName = "127.0.0.1"
 	}
+
 	path := strings.TrimSpace(os.Getenv("TLS_KEY_LOG"))
 	if path != "" {
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
@@ -68,7 +91,7 @@ func main() {
 		}
 		conn = tls.Client(conn, tlsConfig)
 		return conn, nil
-	})
+	}, *minIdleSession)
 
 	for {
 		c, err := listener.Accept()

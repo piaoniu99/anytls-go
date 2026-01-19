@@ -18,11 +18,11 @@ type myClient struct {
 	sessionClient *session.Client
 }
 
-func NewMyClient(ctx context.Context, dialOut util.DialOutFunc) *myClient {
+func NewMyClient(ctx context.Context, dialOut util.DialOutFunc, minIdleSession int) *myClient {
 	s := &myClient{
 		dialOut: dialOut,
 	}
-	s.sessionClient = session.NewClient(ctx, s.createOutboundConnection, &padding.DefaultPaddingFactory, time.Second*30, time.Second*30, 5)
+	s.sessionClient = session.NewClient(ctx, s.createOutboundConnection, &padding.DefaultPaddingFactory, time.Second*30, time.Second*30, minIdleSession)
 	return s
 }
 

@@ -1,3 +1,3 @@
 package util
 
-var ProgramVersionName = "anytls/0.0.11"
+var ProgramVersionName = "anytls/0.0.12"

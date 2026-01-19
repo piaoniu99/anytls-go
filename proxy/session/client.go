@@ -18,6 +18,7 @@ import (
 )
 
 var clientDebugSessionPool = os.Getenv("CLIENT_DEBUG_SESSION_POOL") == "1"
+var clientStreamCounter atomic.Uint64
 
 type Client struct {
 	die       context.Context
@@ -90,6 +91,12 @@ func (c *Client) CreateStream(ctx context.Context) (net.Conn, error) {
 	if err != nil {
 		session.Close()
 		return nil, fmt.Errorf("failed to create stream: %w", err)
+	}
+
+	if clientDebugSessionPool {
+		cn := clientStreamCounter.Add(1)
+		s := c.sessionCounter.Load()
+		logrus.Infoln("cumulative session:", s, "cumulative stream:", cn, "avg:", float64(cn)/float64(s))
 	}
 
 	stream.dieHook = func() {
